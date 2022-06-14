@@ -1,5 +1,7 @@
 # Argz.jl
 
+![Tests](https://github.com/dylanxyz/Argz.jl/actions/workflows/RunTests.yaml/badge.svg)
+
 **Argz** is a simple command-line argument parser for julia.
 
 ## Installation
