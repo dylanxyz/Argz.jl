@@ -116,7 +116,6 @@ see the results of the parsing:
 
 ```
 > ./example.jl sum x y z -f --precision Float64
-
 0.000027 seconds (25 allocations: 2.375 KiB)
 command = "sum"
 args = ["x", "y", "z"]
