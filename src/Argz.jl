@@ -112,6 +112,18 @@ function _options(opts, opt_dict)
     return res
 end
 
+function normargs(args::Vector{String})
+    res = String[]
+    for arg in args
+        if occursin(r"^-\w{2,}$", arg)
+            append!(res, "-" .* split(arg[2:end], ""))
+        else
+            push!(res, arg)
+        end
+    end
+    return res
+end
+
 macro program(expr, args=ARGS)
     expr = expr::Expr
 
@@ -142,16 +154,7 @@ macro program(expr, args=ARGS)
     cmds_if = _commands(cmds)
     opts_if = _options(opts, opt_dict)
 
-    arguments = Expr(:tuple)
-    args = isexpr(args) ? args.args : args
-
-    for arg in args
-        if occursin(r"^-\w{2,}$", arg)
-            append!(arguments.args, "-" .* split(arg[2:end], ""))
-        else
-            push!(arguments.args, arg)
-        end
-    end
+    arguments = normargs(isexpr(args) ? args.args : args)
 
     _module = :(module Program
         $(params...)
@@ -194,11 +197,11 @@ macro program(expr, args=ARGS)
             end
         end
 
-        function parseargs(args=$arguments)
-            options = Options(Dict($(opt_dict...)))
+        function parseargs(args::Vector{String} = $arguments)
             command = ""
             arguments = String[]
-
+            options = Options(Dict($(opt_dict...)))
+            
             i = 1
             while i <= length(args)
                 arg = args[i]
@@ -215,6 +218,12 @@ macro program(expr, args=ARGS)
 
             return command, options, arguments
         end
+
+        precompile(Tuple{typeof(parseargs), Vector{String}})
+        precompile(Tuple{typeof(in), String, Options})
+        precompile(Tuple{typeof(getindex), Options, String})
+        precompile(Tuple{typeof(setindex!), Options, String, String})
+        precompile(Tuple{typeof(setindex!), Options, Bool, String})
     end)
 
     return esc(_module)
