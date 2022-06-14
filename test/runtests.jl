@@ -34,7 +34,7 @@ Program.__TESTING__[] = true
     @test Program.help isa String
 
     arguments = split("sum 1 2 3 4 -h -v --fastmath --precision Float64", " ")
-    cmd, opts, args = Program.parseargs((arguments...,))
+    cmd, opts, args = Program.parseargs(String[arguments...])
 
     @test cmd == "sum"
     @test "--help" in opts
@@ -45,10 +45,10 @@ Program.__TESTING__[] = true
     @test args == ["1", "2", "3", "4"]
 
     arguments = split("sum 1 2 3 -q", " ")
-    @test_throws Exception Program.parseargs((arguments...,))
+    @test_throws Exception Program.parseargs(String[arguments...])
 
     arguments = split("sum mult 1 2 3 4", " ")
-    cmd, opts, args = Program.parseargs((arguments...,))
+    cmd, opts, args = Program.parseargs(String[arguments...])
 
     @test cmd == "sum.mult"
     @test "--help" ∉ opts
@@ -58,7 +58,7 @@ Program.__TESTING__[] = true
     @test args == ["1", "2", "3", "4"]
 
     arguments = split("sum m 1 2 3", " ")
-    cmd, opts, args = Program.parseargs((arguments...,))
+    cmd, opts, args = Program.parseargs(String[arguments...])
 
     @test cmd == "sum.mult"
     @test "--help" ∉ opts
