@@ -97,9 +97,8 @@ function parse_commands(program::Program)
 end
 
 function parse_options(program::Program)
-    opts = program.options
-    opt_dict = Dict{String, Union{String, Bool}}()
     res = Expr[]
+    opts = program.options
     for (opt, _) in opts
         isflag = true
         if occursin(opt_arg_re, opt)
@@ -115,7 +114,6 @@ function parse_options(program::Program)
             :( arg in $names )
 
         if !isflag
-            opt_dict[option] = ""
             push!(block.args, quote
                 i += 1
                 if i <= length(args) && !startswith(args[i], "-")
@@ -128,9 +126,8 @@ function parse_options(program::Program)
                 end
             end)
         else
-            opt_dict[option] = false
             push!(block.args, 
-                :( options[$option] = true ),
+                :( push!(flags, $option) ),
                 :( i += 1 ), 
             )
         end
@@ -138,7 +135,7 @@ function parse_options(program::Program)
         push!(block.args, :( continue ))
         push!(res, Expr(:if, condition, block))
     end
-    return res, opt_dict
+    return res
 end
 
 function parse_program(exprs)
@@ -170,7 +167,7 @@ macro program(expr)
 
     help = _help(program)
     cmds_block = parse_commands(program)
-    opts_block, opt_dict = parse_options(program)
+    opts_block = parse_options(program)
 
     return quote
         help() = $help
@@ -178,7 +175,8 @@ macro program(expr)
         function parseargs(args::Vector{String} = $(normargs(ARGS)))
             command   = ""
             arguments = String[]
-            options   = $(opt_dict)
+            options   = Dict{String, String}()
+            flags     = String[]
             i = 1
             while i <= length(args)
                 arg = args[i]
@@ -194,20 +192,20 @@ macro program(expr)
             end
             
             if $(program.show_help)
-                if get(options, "--help", false) || get(options, "-h", false)
+                if "--help" in flags || "-h" in flags
                     println(help())
                     $(program.exit_onhelp) && exit(0)
                 end
             end
 
             if $(program.show_version)
-                if get(options, "--version", false)
+                if "--version" in flags
                     println($(Expr(:string, program.name, " v", program.version)))
                     $(program.exit_onversion) && exit(0)
                 end
             end
 
-            return command, options, arguments
+            return (; command, args=arguments, options, flags)
         end
            
         precompile(Tuple{typeof(parseargs), Vector{String}})
