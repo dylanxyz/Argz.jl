@@ -14,7 +14,7 @@ let flag = raw"^-\w.*$", option = raw"^--\w.+(=.*)*$"
 end
 
 const multi_flag_re = r"^-\w.+$"
-const option_eq_re = r"^--(\w.+)=(.*)$"
+const option_eq_re = r"^(--\w.+)=(.*)$"
 
 """
         normargs(args::Vector{String}) -> Vector{String}
