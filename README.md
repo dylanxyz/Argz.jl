@@ -28,14 +28,20 @@ pkg> add https://github.com/dylanxyz/Argz.jl
 as following:
 
 ```julia
-@program begin
+const program = @program begin
     name = "calculator"
     desc = "A simple calculator"
     usage = "calculator <command> <args>... [options]"
     version = v"0.1.0"
 
+    # additional options
+    show_help       = true # show help message when the flag '--help|-h' is passed
+    show_version    = true # show version message when the flag '--version' is passed
+    throw_error     = true # throw errors when invalid options are used
+    exit_onhelp     = true # exit when the flag '--help|-h' is passed
+    exit_onversion  = true # exit when the flag '--version' is passed
+    
     commands = {
-        # cmd[|alias] [sub-cmd]    # description
         "sum"                       "Returns the sum of <numbers>..."
         "subtract|sub"              "Subtract <numbers>..."
         "multiply|mul"              "Multiply <numbers>..."
@@ -45,20 +51,39 @@ as following:
     }
 
     options = {
-        # --long[|-short] [<arg>]   # description
         "--help|-h"                 "Show this help message and exit"
         "--version|-v"              "Show version information and exit"
         "--fastmath|-f"             "Use fastmath. (default: false)"
-        "--precision|-p <p>"        "Choose float point precision. (default: Float32)"
+        "--precision <p>"           "Choose float point precision. (default: Float32)"
     }
 end
 ```
 
-The `@program` macro accepts a `block` expression with a 
-series of `=` expressions. The first few expressions defines properties 
-that the resulting `program` must have, so they must be defined. The last 
-two, `commands` and `options`, defines what `commands` can be used and what 
-`options` the program can accept.
+The input of the `@program` macro is a `block` expression. 
+Each expression withing the `block` must be an assignment 
+expression `=`. Names of the defined variables within the
+`block` are properties in the resulting `program`.
+
+## Program Properties
+
+The properties that the program may have are:
+
+| Property         | Type            | Description                                                                                                     |
+|------------------|-----------------|-----------------------------------------------------------------------------------------------------------------|
+| name*          | `String`        | The name of the program                                                                                       |
+| desc           | `String`        | The description of the program (default: `""`)                                                                |
+| usage          | `String`        | The text that should be displayed in the *Usage* section of the program's help message (default: `""`)        |
+| version        | `VersionNumber` | The program's version to be displayed when the flag `--version` is used (default: `v"0.1.0"`)                 |
+| show_help      | `Bool`          | Whether or not to display the program's help message when the flag `--help` or `-h` is used (default: `true`) |
+| show_version   | `Bool`          | Whether or not to display the program's version when the flag `--version` is used (default: `true`)           |
+| throw_error    | `Bool`          | Raise a `Exception` when a parsing error occurs, for example when a invalid option is used (default: `true`)    |
+| exit_onhelp    | `Bool`          | Whether or not to `exit` the current process when the flag `--help` or `-h` is used. (default: `true`)          |
+| exit_onversion | `Bool`          | Whether or not to `exit` the current process when the flag `--version` is used. (default: `true`)               |
+
+> Properties marked with a `*` are required.
+
+The properties `commands` and `options` are *special* and are parsed
+differently from the above properties (explained more below).
 
 ## Commands
 
@@ -88,28 +113,25 @@ by the `option`'s *long* (or *short*) form in the parsing result.
 
 ## Parsing
 
-The result code of the `@program` macro is a `module` named `Program`
-that defines a few functions, but the most important is the `parseargs`
-function that can be used to parse the command line arguments. By
-default, `parseargs` will use `ARGS`, but you can pass custom arguments
-if you want.
+The `@program` macro defines two functions: `help()`, that should be
+used to retrieve the `program`'s **help** message, and `parseargs`
+that should be used to actually *parse* the provided arguments. The
+resulting expression of the macro itself is a `NamedTuple` where
+each field is a [property](#program-properties) of the `program`.
 
 ```julia
-command, options, args = Program.parseargs()
+command, args, options, flags = parseargs()
 ```
 
 - `command` is the command passed or a empty string if no command was
 detected. Nested commands are joined with a `.` character.
 
-- `options` is a `Dict`-like object that stores each `option` with
+- `args` is the remaining arguments (not command nor option nor flag).
+
+- `options` is a `Dict` that stores each (non-boolean) `option` with
 its associated `value`.
 
-- `args` is the remaining arguments (not command nor option).
-
-## Help message
-
-`Program` also defines a constant `help` variable that
-you can use to show the help message of your program.
+- `flags` is a `Vector` that stores each flag used.
 
 ## Example
 
@@ -117,70 +139,59 @@ Using the [example.jl](./example.jl) script and running on `bash`, we can
 see the results of the parsing:
 
 ```
-> ./example.jl sum x y z -f --precision Float64
-0.000027 seconds (25 allocations: 2.375 KiB)
+$ ./example.jl sum x y z -f --precision Float64
+  0.000013 seconds (8 allocations: 768 bytes)
 command = "sum"
 args = ["x", "y", "z"]
-options = Options:
-   --version => false
-   --fastmath => true
-   --help => false
-   --precision => "Float64"
+options = Dict("--precision" => "Float64")
+flags = ["--fastmath"]
 ```
 
 With nested commands:
 
 ```
-./example.jl sum mult a b c --precision Foo
-0.000028 seconds (27 allocations: 2.438 KiB)
+$ ./example.jl sum mult a b c --precision Foo
+  0.000013 seconds (9 allocations: 752 bytes)
 command = "sum.mult"
 args = ["a", "b", "c"]
-options = Options:
-   --version => false
-   --fastmath => false
-   --help => false
-   --precision => "Foo"
+options = Dict("--precision" => "Foo")
+flags = String[]
 ```
 
 Passing non existent options will result in a error:
 
 ```
-> ./example.jl sum x y z -f -q Float64
-Unknown option: -q
+$ ./example.jl sum x y z -f -q Float64
+ERROR: LoadError: Unknown option: -q
 ```
 
 Not providing a non-boolean option a value will also result in a error:
 
 ```
-> ./example.jl sum x y --precision
-Missing argument for option: --precision
+$ ./example.jl sum x y --precision
+ERROR: LoadError: Missing argument for option: --precision
 ```
 
 The program help message is automatically generated:
 
 ```
-> ./example.jl --help
-  0.000030 seconds (24 allocations: 2.297 KiB)
+$ ./example.jl --help
 A simple calculator
 
 Usage: calculator <command> <args>... [options]
 
 Commands:
-    sum                  Returns the sum of <numbers>...
-    subtract, sub        Subtract <numbers>...
-    multiply, mul        Multiply <numbers>...
-    divide, div          Divide two numbers <x> and <y>
-    power, pow           Raise <x> to the power of <y>
-    sum mult, m          Multiply each <numbers>... and sum the result
+    sum                Returns the sum of <numbers>...
+    subtract|sub       Subtract <numbers>...
+    multiply|mul       Multiply <numbers>...
+    divide|div         Divide two numbers <x> and <y>
+    power|pow          Raise <x> to the power of <y>
+    sum mult|m         Multiply each <numbers>... and sum the result
 
 
 Options:
-    --help, -h           Show this help message and exit
-    --version, -v        Show version information and exit
-    --fastmath, -f       Use fastmath. (default: false)
-    --precision <p>      Choose float point precision. (default: Float32)
+    --help|-h          Show this help message and exit
+    --version|-v       Show version information and exit
+    --fastmath|-f      Use fastmath. (default: false)
+    --precision <p>    Choose float point precision. (default: Float32)
 ```
-
-> Ignore the `time` and `allocation` information at the beginning 
-> of the help message as is only displayed in this case because 
-> of the use of `@time` at [example.lj:33](./example.jl#L33).
