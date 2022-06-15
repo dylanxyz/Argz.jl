@@ -1,12 +1,23 @@
 using Argz
 using Test
 
-@program begin
+apply(f::Function) = f()
+
+parseargs(str::String) = parseargs(Argz.normargs(String[split(str, " ")...]))
+
+const program = @program begin
     name = "calculator"
     desc = "A simple calculator"
     usage = "calculator <command> <args>... [options]"
     version = v"0.1.0"
 
+    # additional options
+    show_help       = true # show help message when the flag '--help|-h' is passed
+    show_version    = true # show version message when the flag '--version' is passed
+    throw_error     = true # throw errors when invalid options are used
+    exit_onhelp     = false # exit when the flag '--help|-h' is passed
+    exit_onversion  = false # exit when the flag '--version' is passed
+    
     commands = {
         "sum"                       "Returns the sum of <numbers>..."
         "subtract|sub"              "Subtract <numbers>..."
@@ -24,46 +35,38 @@ using Test
     }
 end
 
-Program.__TESTING__[] = true
+@testset "Program" begin
+    @test program.name == "calculator"
+    @test program.desc == "A simple calculator"
+    @test program.usage == "calculator <command> <args>... [options]"
+    @test program.version == v"0.1.0"
 
-@testset "calculator" begin
-    @test Program.__name__ == "calculator"
-    @test Program.__desc__ == "A simple calculator"
-    @test Program.__usage__ == "calculator <command> <args>... [options]"
-    @test Program.__version__ == v"0.1.0"
-    @test Program.help isa String
+    @test help() isa String
+end
 
-    arguments = split("sum 1 2 3 4 -h -v --fastmath --precision Float64", " ")
-    cmd, opts, args = Program.parseargs(String[arguments...])
-
+@testset "Basic" begin
+    cmd, args, opts, flags = parseargs("sum 1 2 3 4 -vh --fastmath --precision Float64")
+    
     @test cmd == "sum"
-    @test "--help" in opts
-    @test "--version" in opts
-    @test "--fastmath" in opts
-    @test "--precision" in opts
+    @test "--version" in flags
+    @test "--help" in flags
+    @test "--fastmath" in flags
     @test opts["--precision"] == "Float64"
     @test args == ["1", "2", "3", "4"]
+end
 
-    arguments = split("sum 1 2 3 -q", " ")
-    @test_throws Exception Program.parseargs(String[arguments...])
-
-    arguments = split("sum mult 1 2 3 4", " ")
-    cmd, opts, args = Program.parseargs(String[arguments...])
-
+@testset "Nested commands" begin
+    cmd, args, opts, flags = parseargs("sum mult a b c --precision Float32")
+    
     @test cmd == "sum.mult"
-    @test "--help" ∉ opts
-    @test "--version" ∉ opts
-    @test "--precision" ∉ opts
-    @test opts["--precision"] == ""
-    @test args == ["1", "2", "3", "4"]
+    @test "--help" ∉ flags
+    @test "--version" ∉ flags
+    @test "--fastmath" ∉ flags
+    @test opts["--precision"] == "Float32"
+    @test args == ["a", "b", "c"]
+end
 
-    arguments = split("sum m 1 2 3", " ")
-    cmd, opts, args = Program.parseargs(String[arguments...])
-
-    @test cmd == "sum.mult"
-    @test "--help" ∉ opts
-    @test "--version" ∉ opts
-    @test "--precision" ∉ opts
-    @test opts["--precision"] == ""
-    @test args == ["1", "2", "3"]
+@testset "Exceptions" begin
+    @test_throws Exception parseargs("pow 2 3 --non-option")
+    @test_throws Exception parseargs("pow 2 3 --precision -v")
 end
