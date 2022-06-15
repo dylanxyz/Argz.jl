@@ -37,8 +37,8 @@ const program = @program begin
     }
 end
 
-@time result = parseargs()
-@show result.command
-@show result.args
-@show result.options
-@show result.flags
+@time command, args, options, flags = parseargs()
+@show command
+@show args
+@show options
+@show flags
