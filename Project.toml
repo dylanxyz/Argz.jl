@@ -1,7 +1,7 @@
 name = "Argz"
 uuid = "41d54046-b03d-4046-bfed-09b63f41a8b6"
 authors = ["Jorge Brito <jorge.brito.xyz@gmail.com>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
