@@ -88,6 +88,6 @@ end
 end
 
 @testset "Exceptions" begin
-    @test_throws Exception parseargs("pow 2 3 --non-option")
-    @test_throws Exception parseargs("pow 2 3 --precision -v")
+    @test_throws Argz.InvalidOption parseargs("pow 2 3 --non-option")
+    @test_throws Argz.MissingOptValue parseargs("pow 2 3 --precision -v")
 end
