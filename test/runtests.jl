@@ -1,9 +1,7 @@
 using Argz
 using Test
 
-apply(f::Function) = f()
-
-parseargs(str::String) = parseargs(Argz.normargs(String[split(str, " ")...]))
+parseargs(str::String) = parseargs(normargs(String[split(str, " ")...]))
 
 const program = @program begin
     name = "calculator"
@@ -29,7 +27,8 @@ const program = @program begin
 
     options = {
         "--help|-h"                 "Show this help message and exit"
-        "--version|-v"              "Show version information and exit"
+        "--version"                 "Show version information and exit"
+        "--verbose|-v"              "Show verbose output"
         "--fastmath|-f"             "Use fastmath. (default: false)"
         "--precision <p>"           "Choose float point precision. (default: Float32)"
     }
@@ -44,13 +43,23 @@ end
     @test help() isa String
 end
 
+@testset "Normalization" begin
+    args = ["a", "b", "-xyz", "-u", "--foo=bar", "--opt", "val", "--flag", "--opt=@", "--opt=.", "-", "-.-"]
+    res  = ["a", "b", "-x", "-y", "-z", "-u", "--foo", "bar", "--opt", "val", "--flag", "--opt", "@", "--opt", ".", "-", "-.-"]
+    @test normargs(args) == res
+    args = ["a", "b", "-xyz", "-u", "--option=val", "--foo", "bar", "--flag", "--", "----", "-xyz", "--foo=bar", "--foo=@", "--z=.", "-u", "--flag"]
+    res  = ["a", "b", "-x", "-y", "-z", "-u", "--option", "val", "--foo", "bar", "--flag", "--", "----", "-xyz", "--foo=bar", "--foo=@", "--z=.", "-u", "--flag"]
+    @test normargs(args) == res
+end
+
 @testset "Basic" begin
     cmd, args, opts, flags = parseargs("sum 1 2 3 4 -vh --fastmath --precision Float64")
     
     @test cmd == "sum"
-    @test "--version" in flags
+    @test "--verbose" in flags
     @test "--help" in flags
     @test "--fastmath" in flags
+    @test "--version" ∉ flags
     @test opts["--precision"] == "Float64"
     @test args == ["1", "2", "3", "4"]
 end
@@ -61,9 +70,21 @@ end
     @test cmd == "sum.mult"
     @test "--help" ∉ flags
     @test "--version" ∉ flags
+    @test "--verbose" ∉ flags
     @test "--fastmath" ∉ flags
     @test opts["--precision"] == "Float32"
     @test args == ["a", "b", "c"]
+end
+
+@testset "Rest args" begin
+    cmd, args, opts, flags = parseargs("div x y -fv -h --precision=any -- xyz -abc -- --foo=bar")
+    @test cmd == "divide"
+    @test "--help" in flags
+    @test "--version" ∉ flags
+    @test "--verbose" in flags
+    @test "--fastmath" in flags
+    @test opts["--precision"] == "any"
+    @test args == ["x", "y", "--", "xyz", "-abc", "--", "--foo=bar"]
 end
 
 @testset "Exceptions" begin
