@@ -14,6 +14,7 @@ makedocs(
 # Documenter can also automatically deploy documentation to gh-pages.
 # See "Hosting Documentation" and deploydocs() in the Documenter manual
 # for more information.
-deploydocs(
-    repo = "github.com/dylanxyz/Argz.jl.git"
-)
+
+if "--deploy" in ARGS
+    deploydocs(repo = "github.com/dylanxyz/Argz.jl.git")
+end
