@@ -1,6 +1,7 @@
 module Argz
 
 using MacroTools
+using MacroTools: postwalk
 
 export @program
 export normargs
@@ -46,7 +47,7 @@ function normargs(args::Vector{String})
 
         push!(res, arg)
     end
-    return res
+    return filter(!isempty, res)
 end
 
 macro normargs()
