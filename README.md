@@ -28,5 +28,5 @@ To learn how to use this package, see the [documentation][docs-url].
 
 [tests-badge]: https://github.com/dylanxyz/Argz.jl/actions/workflows/RunTests.yaml/badge.svg
 [tests-url]: https://github.com/dylanxyz/Argz.jl/actions/workflows/RunTests.yaml
-[docs-badge]: https://img.shields.io/badge/docs-latest-blue.svg
-[docs-url]: https://dylanxyz.github.io/Argz.jl/latest/
+[docs-badge]: https://img.shields.io/badge/docs-blue.svg
+[docs-url]: https://dylanxyz.github.io/Argz.jl
