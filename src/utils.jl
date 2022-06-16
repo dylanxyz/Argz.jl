@@ -11,7 +11,7 @@ struct MissingOptValue <: Exception
 end
 
 function Base.showerror(io::IO, e::InvalidOption)
-    print(io, "InvalidOption: ")
+    print(io, "InvalidOption: unknown option/flag")
     print(io, e.option)
 end
 
