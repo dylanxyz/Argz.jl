@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #=
-exec julia -q --project=@. --startup-file=no --color=yes "${BASH_SOURCE[0]}" "$@"
+exec julia -q --project=@. --startup-file=no --color=yes "${BASH_SOURCE[0]}" -- "$@"
 exit 0
 =#
 
@@ -14,11 +14,11 @@ const program = @program begin
     version = v"0.1.0"
 
     # additional options
-    show_help       = true # show help message when the flag '--help|-h' is passed
-    show_version    = true # show version message when the flag '--version' is passed
+    show_help       = false # show help message when the flag '--help|-h' is passed
+    show_version    = false # show version message when the flag '--version' is passed
     throw_error     = true # throw errors when invalid options are used
-    exit_onhelp     = true # exit when the flag '--help|-h' is passed
-    exit_onversion  = true # exit when the flag '--version' is passed
+    exit_onhelp     = false # exit when the flag '--help|-h' is passed
+    exit_onversion  = false # exit when the flag '--version' is passed
     
     commands = {
         "sum"                       "Returns the sum of <numbers>..."
