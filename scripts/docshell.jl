@@ -17,7 +17,7 @@ using Markdown
         return `$bash -c "eval \"$command\""`
     end
 else
-    shell(command) = `echo "$command" | bash`
+    shell(command) = `echo "$command" "|" bash`
 end
 
 function main(file::String, out::String; raw=false)
