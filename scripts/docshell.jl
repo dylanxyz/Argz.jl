@@ -14,10 +14,10 @@ using Markdown
         isnothing(git) && error("git must be installed on windows")
         bash = dirname(git) |> dirname
         bash = joinpath(dirname(bash), "bin", "bash.exe")
-        return `$bash -c "eval \"$command\""`
+        return `$bash -c $command`
     end
 else
-    shell(command) = `bash -c 'eval \"$command\"'`
+    shell(command) = `bash -c $command`
 end
 
 function main(file::String, out::String; raw=false)
