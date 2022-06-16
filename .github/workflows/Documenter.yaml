@@ -19,7 +19,9 @@ jobs:
         with:
           version: '1.7'
       - name: Install dependencies
-        run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        run: |
+          julia --project=@. 'import Pkg; Pkg.instantiate()''
+          julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Use docshell
         run: |
           chmod +x ./scripts/docshell.jl
