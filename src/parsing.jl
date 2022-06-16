@@ -40,46 +40,46 @@ function parse_commands(program::Program)
     return res
 end
 
-function parse_options(program::Program)
-    res = Expr[]
-    opts = program.options
-    for (opt, _) in opts
-        isflag = true
-        if occursin(opt_arg_re, opt)
-            opt = replace(opt, opt_arg_re => "")
-            isflag = false
-        end
-
-        names = Expr(:tuple, ssplit(opt, "|")...)
-        option = first(names.args)
-        block = Expr(:block)
-        condition = length(names.args) == 1 ?
-            :( arg == $option ) :
-            :( arg in $names )
-
-        if !isflag
-            push!(block.args, quote
-                i += 1
-                if i <= length(args) && !startswith(args[i], "-")
-                    options[$option] = @inbounds args[i]
-                    i += 1
-                else
-                    if $(program.throw_error)
-                        error("Missing argument for option: $arg")
-                    end
-                end
-            end)
+parse_option(program; option, aliases) = quote
+    if arg in $(aliases...,)
+        i += 1
+        if i <= length(args) && !startswith(args[i], "-")
+            options[$option] = @inbounds args[i]
+            i += 1
+            continue
         else
-            push!(block.args, 
-                :( push!(flags, $option) ),
-                :( i += 1 ), 
-            )
+            if $(program.throw_error)
+                throw(Argz.MissingOptValue(arg))
+            end
         end
-        
-        push!(block.args, :( continue ))
-        push!(res, Expr(:if, condition, block))
     end
-    return res
+end
+
+function parse_options(program::Program)
+    options = filter(isoption, first.(program.options))
+    return map(options) do option
+        option = replace(option, opt_arg_re => "")
+        aliases = ssplit(option, "|")
+        option = first(aliases)
+        parse_option(program; aliases, option)
+    end
+end
+
+parse_flag(; flag, aliases) = quote
+    if arg in $(aliases...,)
+        push!(flags, $flag)
+        i += 1
+        continue
+    end
+end
+
+function parse_flags(program::Program)
+    flags = filter(!isoption, first.(program.options))
+    return map(flags) do flag
+        aliases = ssplit(flag, "|")
+        flag = first(aliases)
+        parse_flag(; aliases, flag)
+    end
 end
 
 function parse_program(exprs)
