@@ -24,6 +24,7 @@ jobs:
           julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Use docshell
         run: |
+          chmod +x ./example.jl
           chmod +x ./scripts/docshell.jl
           ./scripts/docshell.jl docs/src/example.md
       - name: Build and deploy
