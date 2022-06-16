@@ -39,6 +39,17 @@ function help(program::Program)
     return Expr(:string, help...)
 end
 
+function opt_dict(program)
+    options = filter(isoption, first.(program.options))
+    pairs = map(options) do option
+        option = replace(option, opt_arg_re => "")
+        aliases = ssplit(option, "|")
+        option = first(aliases)
+        return option => ""
+    end
+    return Dict(pairs)
+end
+
 macro program(expr)
     expr = expr::Expr
     program = parse_program(expr.args)
@@ -53,7 +64,7 @@ macro program(expr)
         function parseargs(args::Vector{String} = $(normargs(ARGS)))
             command   = ""
             arguments = String[]
-            options   = Dict{String, String}()
+            options   = $(opt_dict(program))
             flags     = String[]
             i = 1
             while i <= length(args)
